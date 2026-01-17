@@ -4,7 +4,7 @@ import mlflow
 from pathlib import Path
 import os
 
-@step(experiment_tracker="mlflow_tracker")
+@step(experiment_tracker="local_mlflow_tracker")
 def trainer(
     data_path: str,
     epochs: int = 3,
@@ -38,9 +38,10 @@ def trainer(
         verbose=False
     )
     
-    # Path to the best model
-    best_model_path = os.path.join("runs", run_name, "weights", "best.pt")
-    
+    # Path to the best model (using actual save_dir to handle naming conflicts)
+    best_model_path = os.path.normpath(os.path.join(results.save_dir, "weights", "best.pt"))
+    print(f"Model trained and saved at: {best_model_path}")
+
     # Log artifacts to MLflow
     if os.path.exists(best_model_path):
         mlflow.log_artifact(best_model_path, artifact_path="weights")

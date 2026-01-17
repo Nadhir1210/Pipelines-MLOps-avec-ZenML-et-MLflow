@@ -60,3 +60,40 @@ Le pipeline est fonctionnel. L'intégration de MLflow permet une analyse compara
 ---
 *Auteur : Nadhir*
 *Date : 17 Janvier 2026*
+
+# TP5 : Pipelines MLOps avec ZenML et MLflow
+
+Ce document complète le rapport avec l'implémentation de l'orchestration via **ZenML**.
+
+## 1. Objectifs du TP5
+- Encapsuler la logique d'entraînement YOLOv8 dans un pipeline orchestré.
+- Utiliser des **étapes (Steps)** ZenML pour le chargement des données, l'entraînement et l'évaluation.
+- Intégrer MLflow en tant que **Experiment Tracker** au sein de la Stack ZenML.
+
+## 2. Configuration de la Stack
+Nous avons configuré une stack locale ZenML nommée `local_mlflow_stack` :
+- **Orchestrator** : Default (Local)
+- **Artifact Store** : Default (Local)
+- **Experiment Tracker** : `local_mlflow_tracker` (MLflow via URI locale `./mlruns`)
+
+## 3. Structure du Pipeline
+Le pipeline `yolo_training_pipeline` est composé de 3 étapes :
+1. **`data_loader`** : Récupère le chemin du fichier YAML de configuration.
+2. **`trainer`** : Entraîne le modèle YOLOv8 et logue les paramètres et le modèle dans MLflow.
+3. **`evaluator`** : Valide le modèle sur le jeu de test et renvoie le mAP50.
+
+## 4. Résultats des Exécutions (Grid Search)
+Quatre runs ont été exécutés via le script `run_yolo_pipeline_grid.py` en variant `imgsz` (320, 416) et `lr0` (0.005, 0.01).
+
+| Run ZenML | Image Size | LR | mAP50 (Evaluator) | Status |
+|-----------|------------|----|-------------------|--------|
+| Run #1    | 320        | 0.005 | 0.152 | Success (Cached) |
+| Run #2    | 416        | 0.005 | **0.256** | Success |
+| Run #3    | 320        | 0.01  | 0.152 | Success |
+| Run #4    | 416        | 0.01  | **0.256** | Success |
+
+**Note** : ZenML gère automatiquement le cache, ce qui permet d'éviter de ré-entraîner les combinaisons déjà testées si les entrées n'ont pas changé.
+
+## 5. Conclusion TP5
+L'utilisation de ZenML permet de standardiser le workflow MLOps. La séparation en étapes facilite la maintenance et le changement d'infrastructure (par exemple, passer d'un entraînement local à un entraînement sur Kubernetes ou cloud sans changer le code métier).
+
