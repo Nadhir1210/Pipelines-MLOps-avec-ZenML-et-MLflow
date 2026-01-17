@@ -24,18 +24,27 @@ Le pipeline `yolo_training_pipeline` est découpé en trois composants clés :
 2.  **Trainer** : Entraînement avec injection automatique des hyperparamètres dans MLflow.
 3.  **Evaluator** : Calcul du mAP50 et validation finale avant stockage.
 
-## 4. Analyse des Expériences (Hyperparameter Tuning)
-Nous avons utilisé un script de **Grid Search** ([src/zenml_pipelines/run_yolo_pipeline_grid.py](src/zenml_pipelines/run_yolo_pipeline_grid.py)) pour comparer l'impact de la taille d'image (`imgsz`) et du taux d'apprentissage (`lr0`).
+## 5. Analyse des Expériences (Hyperparameter Tuning)
+Nous avons comparé deux approches pour l'optimisation des hyperparamètres :
 
-### Résultats mAP50 obtenus :
+### 5.1 Approche Grid Search
+Utilisée via ([src/zenml_pipelines/run_yolo_pipeline_grid.py](src/zenml_pipelines/run_yolo_pipeline_grid.py)) pour comparer l'impact de la taille d'image (`imgsz`) et du taux d'apprentissage (`lr0`).
+
+**Résultats mAP50 obtenus :**
 | Taille Image | LR = 0.005 | LR = 0.01 |
 | :--- | :--- | :--- |
 | **320px** | 0.152 | 0.152 |
 | **416px** | **0.256 (Best)** | **0.256** |
 
-**Conclusion** : L'augmentation de la résolution à 416px est le facteur le plus influent pour améliorer la détection des petites silhouettes.
+### 5.2 Approche Bayésienne (Optuna)
+Pour une recherche plus efficace, nous avons intégré **Optuna** ([src/hpo_optuna.py](src/hpo_optuna.py)). Contrairement à la grille, Optuna utilise l'algorithme TPE pour explorer intelligemment l'espace des hyperparamètres (`lr0`, `imgsz`, `batch`).
 
-## 5. Visualisation des Performances
+**Avantages :**
+*   Convergence plus rapide vers les meilleurs paramètres.
+*   Gestion automatique des runs imbriqués dans MLflow.
+*   Lancement simple : `python -m src.hpo_optuna --trials 10`.
+
+## 6. Visualisation des Performances
 Voici les graphiques générés durant l'entraînement du meilleur modèle (`imgsz=416`) :
 
 ### Courbes d'Entraînement (Loss & Metrics)
@@ -49,7 +58,7 @@ Voici les graphiques générés durant l'entraînement du meilleur modèle (`img
 ### Prédictions sur le jeu de Validation
 ![Predictions](images/val_batch0_pred.jpg)
 
-## 6. Guide de Reproduction (Quickstart)
+## 7. Guide de Reproduction (Quickstart)
 
 ### Prérequis (Windows)
 *   Docker Desktop installé et lancé.
@@ -60,16 +69,21 @@ Voici les graphiques générés durant l'entraînement du meilleur modèle (`img
     ```powershell
     docker-compose up -d
     ```
-2.  **Lancer le pipeline de test** :
+2.  **Lancer le pipeline de base** :
     ```powershell
     $env:PYTHONUTF8=1
     python -m src.zenml_pipelines.run_yolo_pipeline_baseline
     ```
-3.  **Visualiser les résultats** :
-    *   **Dashboard ZenML** : `zenml login --local --blocking`
-    *   **Dashboard MLflow** : [http://localhost:5000](http://localhost:5000)
+3.  **Lancer l'optimisation Optuna** :
+    ```powershell
+    python -m src.hpo_optuna --trials 10
+    ```
+4.  **Lancer le Monitoring** :
+    ```powershell
+    python -m src.monitor_runs
+    ```
 
-## 6. Améliorations Futures
+## 8. Améliorations Futures
 *   Augmenter le nombre d'époques (limité à 3 pour les tests rapides).
 *   Ajouter une étape de déploiement automatique vers un serveur d'inférence (MLServer).
 *   Intégrer DVC pour le versionnement des versions brutes du dataset Tiny COCO.

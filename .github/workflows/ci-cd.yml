@@ -39,6 +39,13 @@ jobs:
         python -m src.train_cv --epochs 1 --imgsz 64 --batch 4 --exp-name ci_smoke_test
       continue-on-error: true # MLflow might fail without a server, but we want to check the Python logic
 
+    - name: Smoke Test (Optuna HPO)
+      run: |
+        # Run a very small optimization trial
+        export MLFLOW_TRACKING_URI="http://localhost:5000"
+        python -m src.hpo_optuna --trials 1 --epochs 1 --imgsz 64
+      continue-on-error: true
+
     - name: Monitoring Check (Dry Run)
       run: |
         python -m src.monitor_runs --dry-run
