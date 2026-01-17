@@ -6,3 +6,7 @@ build/
 *.pt
 .dvc/cache/
 .dvc/tmp/
+mlruns/
+.zen/
+runs_hpo/
+*.log

@@ -12,7 +12,7 @@ def main():
     for cfg in configs:
         print(f"--- Running ZenML Pipeline with imgsz={cfg['imgsz']}, lr0={cfg['lr0']} ---")
         yolo_training_pipeline.with_options(
-            run_name=f"yolo_grid_sz{cfg['imgsz']}_lr{cfg['lr0']}"
+            run_name=f"yolo_grid_sz{cfg['imgsz']}_lr{cfg['lr0']}_{{date}}_{{time}}"
         )(
             epochs=3,
             imgsz=cfg['imgsz'],

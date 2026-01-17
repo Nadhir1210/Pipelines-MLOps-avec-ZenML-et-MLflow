@@ -3,7 +3,7 @@ from ultralytics import YOLO
 import mlflow
 import os
 
-@step(experiment_tracker="local_mlflow_tracker")
+@step(experiment_tracker="mlflow_tracker")
 def evaluator(model_path: str, data_path: str) -> float:
     """Evaluator step for YOLOv8."""
     if not os.path.exists(model_path):

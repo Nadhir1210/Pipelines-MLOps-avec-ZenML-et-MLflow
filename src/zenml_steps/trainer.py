@@ -4,7 +4,7 @@ import mlflow
 from pathlib import Path
 import os
 
-@step(experiment_tracker="local_mlflow_tracker")
+@step(experiment_tracker="mlflow_tracker")
 def trainer(
     data_path: str,
     epochs: int = 3,

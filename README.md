@@ -1,99 +1,82 @@
-# Compte Rendu : TP4 Experiment Tracking avec MLflow - YOLO Tiny
+# Compte Rendu de Projet : Détection d'Objets & MLOps orchestré
 
-Ce document sert de rapport final pour le TP4 sur la détection d'objets (YOLOv8) avec suivi d'expériences (MLflow).
-
-## 1. Contexte et Objectifs
-L'objectif de ce TP était de mettre en place un pipeline complet d'entraînement pour la détection de personnes dans un dataset filtré (Tiny COCO), en automatisant le suivi des hyperparamètres et des métriques via **MLflow** et **DVC**.
+## 1. Présentation du Projet
+Ce projet implémente un pipeline complet de détection d'objets (YOLOv8) pour identifier des personnes dans un dataset filtré (**Tiny COCO**). L'objectif est de démontrer l'intégration d'outils MLOps modernes (**ZenML**, **MLflow**, **MinIO**, **Docker**) pour automatiser le cycle de vie du modèle, de l'entraînement au suivi des performances.
 
 ## 2. Architecture Technique
-- **Modèle** : YOLOv8 Nano (Ultralytics).
-- **Dataset** : COCO128 filtré pour ne garder que la classe "personne".
-- **Infrastructure** : 
-  - **MLflow Tracking** pour les logs.
-  - **MinIO** comme serveur d'artefacts (S3-compatible).
-  - **Docker Compose** pour orchestrer les services.
-  - **DVC** pour le versionnement des données.
+Le projet repose sur une infrastructure conteneurisée et une orchestration par étapes :
 
-## 3. Analyse de la Grille d'Expériences
-Nous avons testé plusieurs combinaisons :
-- **Tailles d'image (imgsz)** : 320, 416.
-- **Learning Rates (lr0)** : 0.005, 0.01.
-- **Époques** : 3 (pour des tests rapides).
+*   **Modèle** : YOLOv8 Nano (Ultralytics).
+*   **Orchestration** : [ZenML](src/zenml_pipelines/yolo_pipeline.py) pour structurer le workflow en étapes reproductibles.
+*   **Tracking** : [MLflow](http://localhost:5000) pour journaliser les hyperparamètres, les métriques et les poids du modèle.
+*   **Artifact Store** : [MinIO](http://localhost:9000) (S3) pour le stockage centralisé des données et des modèles.
+*   **Infrastructure** : Docker Compose pour la gestion des serveurs MLflow et MinIO.
 
-### Meilleurs Résultats (Top 3)
-| Run Name | Image Size | LR | mAP50 | Precision | Recall |
-|----------|------------|----|-------|-----------|--------|
-| `yolov8n_e3_sz416_lr0.005_s42` | 416 | 0.005 | **0.2573** | 0.0070 | 0.6774 |
-| `yolov8n_e3_sz320_lr0.01_s42` | 320 | 0.01 | 0.1521 | 0.0073 | 0.6452 |
-| `yolov8n_e3_sz320_lr0.005_s42` | 320 | 0.005 | 0.1521 | 0.0073 | 0.6452 |
+## 3. CI/CD & Monitoring
+Le projet inclut une automatisation pour garantir la qualité du code et du modèle :
+*   **CI (GitHub Actions)** : Validation automatique à chaque commit (Linting via `flake8`, Smoke test d'entraînement).
+*   **Monitoring** : Un script de surveillance ([src/monitor_runs.py](src/monitor_runs.py)) compare les performances du modèle actuel par rapport à une base historique et logue les alertes dans MLflow.
+*   **Automation locale** : Utiliser [scripts/cicd_pipeline.ps1](scripts/cicd_pipeline.ps1) pour valider les changements localement avant de pusher.
 
-**Observation** : L'augmentation de la taille d'image à 416 a significativement amélioré le mAP50.
+## 4. Structure du Pipeline ZenML
+Le pipeline `yolo_training_pipeline` est découpé en trois composants clés :
+1.  **DataLoader** : Récupération du dataset Tiny Person.
+2.  **Trainer** : Entraînement avec injection automatique des hyperparamètres dans MLflow.
+3.  **Evaluator** : Calcul du mAP50 et validation finale avant stockage.
 
-## 4. Visualisations
-Voici les graphiques générés durant l'entraînement du meilleur modèle :
+## 4. Analyse des Expériences (Hyperparameter Tuning)
+Nous avons utilisé un script de **Grid Search** ([src/zenml_pipelines/run_yolo_pipeline_grid.py](src/zenml_pipelines/run_yolo_pipeline_grid.py)) pour comparer l'impact de la taille d'image (`imgsz`) et du taux d'apprentissage (`lr0`).
 
-### Résultats d'Entraînement
+### Résultats mAP50 obtenus :
+| Taille Image | LR = 0.005 | LR = 0.01 |
+| :--- | :--- | :--- |
+| **320px** | 0.152 | 0.152 |
+| **416px** | **0.256 (Best)** | **0.256** |
+
+**Conclusion** : L'augmentation de la résolution à 416px est le facteur le plus influent pour améliorer la détection des petites silhouettes.
+
+## 5. Visualisation des Performances
+Voici les graphiques générés durant l'entraînement du meilleur modèle (`imgsz=416`) :
+
+### Courbes d'Entraînement (Loss & Metrics)
 ![Results](images/results.png)
 
-### Courbe Précision-Rappel (PR Curve)
-![PR Curve](images/BoxPR_curve.png)
+### Performance de Détection
+| Courbe Précision-Rappel | Matrice de Confusion |
+| :---: | :---: |
+| ![PR Curve](images/BoxPR_curve.png) | ![Confusion Matrix](images/confusion_matrix.png) |
 
-### Matrice de Confusion
-![Confusion Matrix](images/confusion_matrix.png)
-
-### Prédictions sur le jeu de validation
+### Prédictions sur le jeu de Validation
 ![Predictions](images/val_batch0_pred.jpg)
 
-## 5. Décision de Promotion
-**Candidat promu** : `yolov8n_e3_sz416_lr0.005_s42` (ID: `4f44f0a84b8949c382ced7d9ca916a6c`)
+## 6. Guide de Reproduction (Quickstart)
 
-**Justification** :
-- Meilleur mAP50 (0.257).
-- Bonne stabilité des pertes (loss) malgré le faible nombre d'époques.
-- Taille d'image 416 permet de mieux capter les petits objets (Tiny Person).
+### Prérequis (Windows)
+*   Docker Desktop installé et lancé.
+*   Python 3.11 avec l'environnement virtuel activé.
 
-**Décision** : **OUI** (Promotion en production/Staging dans le Model Registry).
+### Installation et Lancement
+1.  **Démarrer l'infrastructure** :
+    ```powershell
+    docker-compose up -d
+    ```
+2.  **Lancer le pipeline de test** :
+    ```powershell
+    $env:PYTHONUTF8=1
+    python -m src.zenml_pipelines.run_yolo_pipeline_baseline
+    ```
+3.  **Visualiser les résultats** :
+    *   **Dashboard ZenML** : `zenml login --local --blocking`
+    *   **Dashboard MLflow** : [http://localhost:5000](http://localhost:5000)
 
-## 6. Conclusion
-Le pipeline est fonctionnel. L'intégration de MLflow permet une analyse comparative immédiate des performances. Pour la suite, un entraînement sur 50+ époques avec le dataset complet permettrait d'atteindre des métriques de précision plus robustes.
+## 6. Améliorations Futures
+*   Augmenter le nombre d'époques (limité à 3 pour les tests rapides).
+*   Ajouter une étape de déploiement automatique vers un serveur d'inférence (MLServer).
+*   Intégrer DVC pour le versionnement des versions brutes du dataset Tiny COCO.
 
 ---
-*Auteur : Nadhir*
-*Date : 17 Janvier 2026*
+**Auteur :** Nadhir  
+**Date :** 17 Janvier 2026  
+**Modèle utilisé :** Gemini 3 Flash (Preview) via GitHub Copilot
 
-# TP5 : Pipelines MLOps avec ZenML et MLflow
-
-Ce document complète le rapport avec l'implémentation de l'orchestration via **ZenML**.
-
-## 1. Objectifs du TP5
-- Encapsuler la logique d'entraînement YOLOv8 dans un pipeline orchestré.
-- Utiliser des **étapes (Steps)** ZenML pour le chargement des données, l'entraînement et l'évaluation.
-- Intégrer MLflow en tant que **Experiment Tracker** au sein de la Stack ZenML.
-
-## 2. Configuration de la Stack
-Nous avons configuré une stack locale ZenML nommée `local_mlflow_stack` :
-- **Orchestrator** : Default (Local)
-- **Artifact Store** : Default (Local)
-- **Experiment Tracker** : `local_mlflow_tracker` (MLflow via URI locale `./mlruns`)
-
-## 3. Structure du Pipeline
-Le pipeline `yolo_training_pipeline` est composé de 3 étapes :
-1. **`data_loader`** : Récupère le chemin du fichier YAML de configuration.
-2. **`trainer`** : Entraîne le modèle YOLOv8 et logue les paramètres et le modèle dans MLflow.
-3. **`evaluator`** : Valide le modèle sur le jeu de test et renvoie le mAP50.
-
-## 4. Résultats des Exécutions (Grid Search)
-Quatre runs ont été exécutés via le script `run_yolo_pipeline_grid.py` en variant `imgsz` (320, 416) et `lr0` (0.005, 0.01).
-
-| Run ZenML | Image Size | LR | mAP50 (Evaluator) | Status |
-|-----------|------------|----|-------------------|--------|
-| Run #1    | 320        | 0.005 | 0.152 | Success (Cached) |
-| Run #2    | 416        | 0.005 | **0.256** | Success |
-| Run #3    | 320        | 0.01  | 0.152 | Success |
-| Run #4    | 416        | 0.01  | **0.256** | Success |
-
-**Note** : ZenML gère automatiquement le cache, ce qui permet d'éviter de ré-entraîner les combinaisons déjà testées si les entrées n'ont pas changé.
-
-## 5. Conclusion TP5
-L'utilisation de ZenML permet de standardiser le workflow MLOps. La séparation en étapes facilite la maintenance et le changement d'infrastructure (par exemple, passer d'un entraînement local à un entraînement sur Kubernetes ou cloud sans changer le code métier).
 
