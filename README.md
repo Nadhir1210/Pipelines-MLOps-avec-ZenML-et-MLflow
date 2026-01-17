@@ -1,29 +1,62 @@
-# TP4 : Experiment Tracking avec MLflow - YOLO Tiny
+# Compte Rendu : TP4 Experiment Tracking avec MLflow - YOLO Tiny
 
-Ce projet met en œuvre le suivi d'expériences pour la détection d'objets à l'aide de YOLOv8n et MLflow.
+Ce document sert de rapport final pour le TP4 sur la détection d'objets (YOLOv8) avec suivi d'expériences (MLflow).
 
-## Structure du Projet
+## 1. Contexte et Objectifs
+L'objectif de ce TP était de mettre en place un pipeline complet d'entraînement pour la détection de personnes dans un dataset filtré (Tiny COCO), en automatisant le suivi des hyperparamètres et des métriques via **MLflow** et **DVC**.
 
-- images/ : Captures des résultats d'entraînement (courbes de perte, matrices de confusion).
-- data/ : Contient le dataset COCO128 filtré pour la classe "person".
-- reports/ : Gabarit de décision pour la promotion du modèle.
-- scripts/ : Scripts pour lancer une grille d'expériences.
-- src/ : Code source pour l'entraînement et les utilitaires.
-- tools/ : Script de génération du mini-dataset.
+## 2. Architecture Technique
+- **Modèle** : YOLOv8 Nano (Ultralytics).
+- **Dataset** : COCO128 filtré pour ne garder que la classe "personne".
+- **Infrastructure** : 
+  - **MLflow Tracking** pour les logs.
+  - **MinIO** comme serveur d'artefacts (S3-compatible).
+  - **Docker Compose** pour orchestrer les services.
+  - **DVC** pour le versionnement des données.
 
-## Étapes Réalisées
+## 3. Analyse de la Grille d'Expériences
+Nous avons testé plusieurs combinaisons :
+- **Tailles d'image (imgsz)** : 320, 416.
+- **Learning Rates (lr0)** : 0.005, 0.01.
+- **Époques** : 3 (pour des tests rapides).
 
-1. Preparation de l'environnement : Creation d'un venv et installation des dependances.
-2. Generation du dataset : Transformation de COCO128 en un dataset ultra-leger (1 classe person).
-3. Infrastructure de Tracking : Lancement de MLflow et MinIO via Docker Compose.
-4. Baseline : Execution d'un premier entrainement YOLOv8n sur 3 epoques.
-5. Grille d'experiences : Lancement de plusieurs runs avec variations de la taille d'image (imgsz) et du taux d'apprentissage (lr0).
+### Meilleurs Résultats (Top 3)
+| Run Name | Image Size | LR | mAP50 | Precision | Recall |
+|----------|------------|----|-------|-----------|--------|
+| `yolov8n_e3_sz416_lr0.005_s42` | 416 | 0.005 | **0.2573** | 0.0070 | 0.6774 |
+| `yolov8n_e3_sz320_lr0.01_s42` | 320 | 0.01 | 0.1521 | 0.0073 | 0.6452 |
+| `yolov8n_e3_sz320_lr0.005_s42` | 320 | 0.005 | 0.1521 | 0.0073 | 0.6452 |
 
-## Résultats
+**Observation** : L'augmentation de la taille d'image à 416 a significativement amélioré le mAP50.
 
-Les graphiques de performance se trouvent dans le dossier [images/](images/).
+## 4. Visualisations
+Voici les graphiques générés durant l'entraînement du meilleur modèle :
 
-Pour visualiser les runs et comparer les métriques (mAP, précision, rappel), accédez à l'interface MLflow : http://localhost:5000.
+### Résultats d'Entraînement
+![Results](images/results.png)
+
+### Courbe Précision-Rappel (PR Curve)
+![PR Curve](images/BoxPR_curve.png)
+
+### Matrice de Confusion
+![Confusion Matrix](images/confusion_matrix.png)
+
+### Prédictions sur le jeu de validation
+![Predictions](images/val_batch0_pred.jpg)
+
+## 5. Décision de Promotion
+**Candidat promu** : `yolov8n_e3_sz416_lr0.005_s42` (ID: `4f44f0a84b8949c382ced7d9ca916a6c`)
+
+**Justification** :
+- Meilleur mAP50 (0.257).
+- Bonne stabilité des pertes (loss) malgré le faible nombre d'époques.
+- Taille d'image 416 permet de mieux capter les petits objets (Tiny Person).
+
+**Décision** : **OUI** (Promotion en production/Staging dans le Model Registry).
+
+## 6. Conclusion
+Le pipeline est fonctionnel. L'intégration de MLflow permet une analyse comparative immédiate des performances. Pour la suite, un entraînement sur 50+ époques avec le dataset complet permettrait d'atteindre des métriques de précision plus robustes.
 
 ---
 *Auteur : Nadhir*
+*Date : 17 Janvier 2026*
