@@ -31,6 +31,20 @@ services:
     volumes:
       - miniodata:/data
 
+  zenml-server:
+    image: zenmldocker/zenml-server:0.66.0
+    container_name: zenml-server
+    environment:
+      ZENML_STORE_URL: sqlite:////zenml/zenml.db
+      ZENML_STORE_TYPE: sql
+    ports:
+      - "8080:8080"
+    volumes:
+      - zenmldata:/zenml
+    depends_on:
+      - minio
+
 volumes:
   mlflowdata: {}
   miniodata: {}
+  zenmldata: {}
