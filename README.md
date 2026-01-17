@@ -1,25 +1,29 @@
-# MLflow CV Tiny (YOLO)
+# TP4 : Experiment Tracking avec MLflow - YOLO Tiny
 
-Objectif : tracer et comparer plusieurs runs YOLO tiny sur un mini-dataset (1 classe `person`) avec MLflow.
+Ce projet met en œuvre le suivi d'expériences pour la détection d'objets à l'aide de YOLOv8n et MLflow.
 
-## Quickstart
-```bash
-docker compose up -d   # MLflow (5000), MinIO (9001)
-pip install -r requirements.txt
-python tools/make_tiny_person_from_coco128.py
-```
+## Structure du Projet
 
-Baseline (ex.) : python src/train_cv.py --epochs 3 --imgsz 320 --exp-name cv_yolo_tiny
+- images/ : Captures des résultats d'entraînement (courbes de perte, matrices de confusion).
+- data/ : Contient le dataset COCO128 filtré pour la classe "person".
+- reports/ : Gabarit de décision pour la promotion du modèle.
+- scripts/ : Scripts pour lancer une grille d'expériences.
+- src/ : Code source pour l'entraînement et les utilitaires.
+- tools/ : Script de génération du mini-dataset.
 
-Grille de runs :
+## Étapes Réalisées
 
-    Linux/macOS : bash scripts/run_grid.sh
+1. Preparation de l'environnement : Creation d'un venv et installation des dependances.
+2. Generation du dataset : Transformation de COCO128 en un dataset ultra-leger (1 classe person).
+3. Infrastructure de Tracking : Lancement de MLflow et MinIO via Docker Compose.
+4. Baseline : Execution d'un premier entrainement YOLOv8n sur 3 epoques.
+5. Grille d'experiences : Lancement de plusieurs runs avec variations de la taille d'image (imgsz) et du taux d'apprentissage (lr0).
 
-    Windows (PS) : powershell -ExecutionPolicy Bypass -File scripts\run_grid.ps1
+## Résultats
 
-    Windows (CMD) : scripts\run_grid.cmd
+Les graphiques de performance se trouvent dans le dossier [images/](images/).
 
-UI MLflow : http://localhost:5000
+Pour visualiser les runs et comparer les métriques (mAP, précision, rappel), accédez à l'interface MLflow : http://localhost:5000.
 
-
-Décision : compléter reports/templates/decision_template.md (captures MLflow à l’appui).
+---
+*Auteur : Nadhir*

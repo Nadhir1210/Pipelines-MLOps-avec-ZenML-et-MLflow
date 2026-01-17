@@ -1,11 +1,12 @@
 $Sizes = @(320, 416)
 $LRs   = @(0.005, 0.010)
 $Seeds = @(1, 42)
+$PYTHON = "C:/Users/Nadhir/Downloads/mlflow-cv-yolo-main/.venv/Scripts/python.exe"
 
 foreach ($size in $Sizes) {
   foreach ($lr in $LRs) {
     foreach ($seed in $Seeds) {
-      python -u src/train_cv.py `
+      & $PYTHON -u src/train_cv.py `
         --data data/tiny_coco.yaml `
         --model yolov8n.pt `
         --epochs 3 `
